@@ -1,28 +1,44 @@
 import { prisma } from "@/lib/db";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 export async function GET() {
-  // TODO: bind to session user
-  const user = await prisma.user.findFirst();
+  const session = await getServerSession(authOptions as any);
+  const userId = (session?.user as any)?.id;
+  if (!userId) return new Response("unauthorized", { status: 401 });
+  const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) return new Response("no user", { status: 404 });
   return Response.json(user);
 }
 
 export async function POST(request: Request) {
+  const session = await getServerSession(authOptions as any);
+  const userId = (session?.user as any)?.id;
+  if (!userId) return new Response("unauthorized", { status: 401 });
   const data = await request.json();
-  // TODO: bind to session user; using first user for now
-  const user = await prisma.user.findFirst();
-  if (!user) return new Response("no user", { status: 404 });
   const updated = await prisma.user.update({
-    where: { id: user.id },
+    where: { id: userId },
     data: {
-      locale: data.locale ?? user.locale,
-      tone: data.tone ?? user.tone,
-      channel: data.channel ?? user.channel,
-      timezone: data.timezone ?? user.timezone,
-      sendAt: data.sendAt ?? user.sendAt,
-      phone: data.phone ?? user.phone,
-      retainEventText: data.retainEventText ?? user.retainEventText,
+      locale: data.locale,
+      tone: data.tone,
+      channel: data.channel,
+      timezone: data.timezone,
+      sendAt: data.sendAt,
+      phone: data.phone,
+      retainEventText: data.retainEventText,
     },
   });
   return Response.json(updated);
+}
+
+export async function DELETE() {
+  const session = await getServerSession(authOptions as any);
+  const userId = (session?.user as any)?.id;
+  if (!userId) return new Response("unauthorized", { status: 401 });
+  await prisma.deliveryLog.deleteMany({ where: { userId } });
+  await prisma.dailySignal.deleteMany({ where: { userId } });
+  await prisma.account.deleteMany({ where: { userId } });
+  await prisma.session.deleteMany({ where: { userId } });
+  await prisma.user.delete({ where: { id: userId } });
+  return new Response(null, { status: 204 });
 }

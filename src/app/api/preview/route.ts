@@ -3,15 +3,13 @@ import { getGoogleCalendarClient } from "@/lib/google";
 import { fetchTodayEvents, computeSignals } from "@/lib/analysis";
 import { generateMessage } from "@/lib/ai";
 import { DateTime } from "luxon";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 export async function GET(request: Request) {
-  const url = new URL(request.url);
-  let userId = url.searchParams.get("userId");
-  if (userId === "me" || !userId) {
-    const first = await prisma.user.findFirst();
-    if (!first) return new Response("user not found", { status: 404 });
-    userId = first.id;
-  }
+  const session = await getServerSession(authOptions as any);
+  let userId = (session?.user as any)?.id;
+  if (!userId) return new Response("unauthorized", { status: 401 });
 
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) return new Response("user not found", { status: 404 });
