@@ -1,8 +1,16 @@
 import { prisma } from "@/lib/db";
 import { DateTime } from "luxon";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { redirect } from "next/navigation";
 
 export default async function HistoryPage() {
+  const session = await getServerSession(authOptions as any);
+  const userId = (session?.user as any)?.id;
+  if (!userId) redirect("/api/auth/signin");
+
   const logs = await prisma.deliveryLog.findMany({
+    where: { userId },
     orderBy: { createdAt: "desc" },
     take: 14,
   });

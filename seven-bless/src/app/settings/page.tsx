@@ -16,6 +16,10 @@ export default function SettingsPage() {
     (async () => {
       setLoading(true);
       const res = await fetch("/api/user/me", { cache: "no-store" });
+      if (res.status === 401) {
+        window.location.href = "/api/auth/signin";
+        return;
+      }
       if (res.ok) {
         const u = await res.json();
         setLocale(u.locale ?? "ko");
@@ -49,6 +53,10 @@ export default function SettingsPage() {
   const onPreview = async () => {
     setPreview("생성 중...");
     const res = await fetch(`/api/preview`, { cache: "no-store" });
+    if (res.status === 401) {
+      window.location.href = "/api/auth/signin";
+      return;
+    }
     if (!res.ok) {
       setPreview("미리보기 실패");
       return;
